@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Staff Sign In — Crest Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root {
+    --bg-main: #060814;
+    --bg-card: #0b112c;
+    --bg-input: #12193d;
+    --accent-primary: #38bdf8;
+    --accent-hover: #0288d1;
+    --text-main: #f1f5f9;
+    --text-muted: #64748b;
+    --border-color: rgba(56, 189, 248, 0.15);
+    --success: #10b981;
+    --danger: #ef4444;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+  body {
+    background: var(--bg-main); color: var(--text-main);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .box {
+    background: linear-gradient(145deg, #0b132b, #070b1e);
+    border: 1px solid var(--border-color); border-radius: 24px;
+    padding: 40px 36px; width: 100%; max-width: 440px;
+    box-shadow: 0 30px 60px -15px rgba(0,0,0,0.7); text-align: center;
+  }
+  .box i.brand { font-size: 38px; color: var(--accent-primary); margin-bottom: 8px; }
+  .box h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .box p.sub { color: var(--text-muted); font-size: 12.5px; margin-bottom: 26px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; text-align: left; }
+  .form-group label { font-size: 11px; font-weight: 700; color: var(--accent-primary); text-transform: uppercase; letter-spacing: 0.06em; }
+  .form-group input {
+    width: 100%; padding: 13px 14px; background: var(--bg-input);
+    border: 1px solid rgba(255,255,255,0.06); border-radius: 12px;
+    color: #fff; font-size: 13.5px; outline: none; transition: all 0.2s;
+  }
+  .form-group input:focus { border-color: var(--accent-primary); background: #16204d; }
+
+  .btn {
+    width: 100%; padding: 15px; border: none; border-radius: 13px;
+    font-size: 14.5px; font-weight: 700; cursor: pointer; letter-spacing: 0.02em;
+    background: linear-gradient(135deg, var(--accent-hover), var(--accent-primary));
+    color: #040714; box-shadow: 0 4px 20px rgba(56,189,248,0.25); transition: all 0.2s;
+    margin-top: 6px;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(56,189,248,0.35); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .toggle-text { color: var(--text-muted); font-size: 12.5px; margin-top: 18px; cursor: pointer; }
+  .toggle-text span { color: var(--accent-primary); font-weight: 700; }
+
+  .msg { font-size: 12px; margin-top: 16px; padding: 12px; border-radius: 10px; display: none; text-align: left; line-height: 1.5; }
+  .msg.error { color: #fca5a5; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); }
+  .msg.success { color: #6ee7b7; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); }
+  .msg.info { color: #93c5fd; background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); }
+
+  .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 12.5px; text-decoration: none; margin-top: 22px; }
+  .back-link:hover { color: var(--accent-primary); }
+
+  .setup-note { font-size: 11.5px; color: #fbbf24; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); padding: 12px; border-radius: 10px; margin-bottom: 20px; text-align: left; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <i class="fas fa-user-shield brand"></i>
+
+  <!-- ============ ROOT SETUP (only shown the very first time — no root account exists yet) ============ -->
+  <div id="view-setup" style="display:none;">
+    <h2>Create Root Admin Account</h2>
+    <p class="sub">No administrator account exists yet. Set yours up now — this becomes the only account that can approve or remove other staff.</p>
+    <div class="setup-note"><i class="fas fa-triangle-exclamation"></i> This screen will only ever appear once. Remember these credentials — there is no separate recovery path for the root account.</div>
+
+    <div class="form-group"><label>First Name</label><input type="text" id="setupFirstName" /></div>
+    <div class="form-group"><label>Surname</label><input type="text" id="setupSurname" /></div>
+    <div class="form-group"><label>Phone Number</label><input type="text" id="setupPhone" placeholder="e.g. +265888123456" /></div>
+    <div class="form-group"><label>Username</label><input type="text" id="setupUsername" placeholder="e.g. taydayo" /></div>
+    <div class="form-group"><label>Password</label><input type="password" id="setupPassword" placeholder="At least 8 characters, 1 letter, 1 number" /></div>
+
+    <button class="btn" id="setupBtn" onclick="handleRootSetup()"><i class="fas fa-shield-halved"></i> Create Root Account &amp; Sign In</button>
+    <div class="msg" id="setupMsg"></div>
+  </div>
+
+  <!-- ============ LOGIN ============ -->
+  <div id="view-login">
+    <h2>Staff Sign In</h2>
+    <p class="sub">Enter your credentials to access the Executive Control Console.</p>
+
+    <div class="form-group"><label>Username</label><input type="text" id="loginUsername" /></div>
+    <div class="form-group"><label>Password</label><input type="password" id="loginPassword" onkeydown="if(event.key==='Enter') handleStaffLogin()" /></div>
+
+    <button class="btn" id="loginBtn" onclick="handleStaffLogin()"><i class="fas fa-right-to-bracket"></i> Sign In</button>
+    <div class="msg" id="loginMsg"></div>
+
+    <p class="toggle-text" onclick="showView('request')">Need access? <span>Request a staff account</span></p>
+  </div>
+
+  <!-- ============ REQUEST ACCESS (new staff, needs root approval) ============ -->
+  <div id="view-request" style="display:none;">
+    <h2>Request Staff Access</h2>
+    <p class="sub">Submit your details below. The administrator must approve your request before you can sign in.</p>
+
+    <div class="form-group"><label>First Name</label><input type="text" id="reqFirstName" /></div>
+    <div class="form-group"><label>Surname</label><input type="text" id="reqSurname" /></div>
+    <div class="form-group"><label>Phone Number</label><input type="text" id="reqPhone" placeholder="e.g. +265888123456" /></div>
+    <div class="form-group"><label>Desired Username</label><input type="text" id="reqUsername" /></div>
+    <div class="form-group"><label>Password</label><input type="password" id="reqPassword" placeholder="At least 8 characters, 1 letter, 1 number" /></div>
+
+    <button class="btn" id="reqBtn" onclick="handleStaffRequest()"><i class="fas fa-paper-plane"></i> Submit Request</button>
+    <div class="msg" id="reqMsg"></div>
+
+    <p class="toggle-text" onclick="showView('login')">Already have an account? <span>Sign in</span></p>
+  </div>
+
+  <a href="index.html" class="back-link"><i class="fa-solid fa-arrow-left-long"></i> Back to main site</a>
+</div>
+
+<script>
+  // Same JSONBin credentials used by admin.html — keep these identical to that file.
+  const API_KEY = "$2a$10$KKF8upo8WAB30HGiEb/sguakOWUr5mxLsSZKztNcPPsfXYzMWOnBi";
+  const ACCOUNTS_BIN_ID = "6a4cb512da38895dfe397e29";
+  const ACCOUNTS_BASE_URL = "https://api.jsonbin.io/v3/b/" + ACCOUNTS_BIN_ID;
+
+  async function getAccounts() {
+    const res = await fetch(ACCOUNTS_BASE_URL + "/latest", {
+      headers: { "X-Master-Key": API_KEY, "X-Bin-Meta": "false" }
+    });
+    if (!res.ok) throw new Error("Server responded with " + res.status);
+    const data = await res.json();
+    return data.accounts || (Array.isArray(data) ? data : []);
+  }
+
+  async function saveAccounts(accountsArray) {
+    const res = await fetch(ACCOUNTS_BASE_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
+      body: JSON.stringify({ accounts: accountsArray })
+    });
+    if (!res.ok) throw new Error("Server responded with " + res.status);
+  }
+
+  // Same salted-hash scheme used for student accounts in index.html.
+  function generateSalt() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+  async function hashPassword(password, salt) {
+    const enc = new TextEncoder();
+    const data = enc.encode(salt + ":" + password);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  function isStrongPassword(v) { return v.length >= 8 && /[A-Za-z]/.test(v) && /[0-9]/.test(v); }
+
+  function showView(name) {
+    document.getElementById('view-setup').style.display = name === 'setup' ? 'block' : 'none';
+    document.getElementById('view-login').style.display = name === 'login' ? 'block' : 'none';
+    document.getElementById('view-request').style.display = name === 'request' ? 'block' : 'none';
+  }
+
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'msg ' + type;
+    el.style.display = 'block';
+  }
+
+  // On load: figure out whether a root account exists yet. If the accounts
+  // bin can't be reached at all, show that clearly instead of silently
+  // failing — this is the #1 way to tell if the JSONBin bin ID / key is wrong.
+  window.addEventListener('DOMContentLoaded', async () => {
+    // If already signed in, skip straight to the console.
+    if (sessionStorage.getItem('crest_staff_session')) {
+      window.location.href = 'admin.html';
+      return;
+    }
+    try {
+      const accounts = await getAccounts();
+      const hasRoot = accounts.some(a => a.isRoot);
+      showView(hasRoot ? 'login' : 'setup');
+    } catch (err) {
+      console.error(err);
+      showView('login');
+      showMsg('loginMsg', "Could not reach the account server (" + err.message + "). Check your internet connection, or verify the ACCOUNTS_BIN_ID / API_KEY in login.html and admin.html match a real JSONBin.io bin.", 'error');
+    }
+  });
+
+  async function handleRootSetup() {
+    const firstName = document.getElementById('setupFirstName').value.trim();
+    const surname = document.getElementById('setupSurname').value.trim();
+    const phone = document.getElementById('setupPhone').value.trim();
+    const username = document.getElementById('setupUsername').value.trim().toLowerCase();
+    const password = document.getElementById('setupPassword').value;
+    const btn = document.getElementById('setupBtn');
+
+    if (!firstName || !surname || !phone || !username || !password) {
+      showMsg('setupMsg', "Please fill in every field.", 'error'); return;
+    }
+    if (!isStrongPassword(password)) {
+      showMsg('setupMsg', "Password must be at least 8 characters and include a letter and a number.", 'error'); return;
+    }
+
+    btn.disabled = true;
+    try {
+      const accounts = await getAccounts();
+      if (accounts.some(a => a.isRoot)) {
+        showMsg('setupMsg', "A root account already exists. Refresh and sign in instead.", 'error');
+        return;
+      }
+      const salt = generateSalt();
+      const passwordHash = await hashPassword(password, salt);
+      accounts.push({ firstName, surname, phone, username, salt, passwordHash, isRoot: true, status: 'approved', createdAt: Date.now() });
+      await saveAccounts(accounts);
+
+      sessionStorage.setItem('crest_staff_session', JSON.stringify({ firstName, surname, username, phone, isRoot: true }));
+      window.location.href = 'admin.html';
+    } catch (err) {
+      console.error(err);
+      showMsg('setupMsg', "Could not create the account: " + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function handleStaffLogin() {
+    const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+    const btn = document.getElementById('loginBtn');
+
+    if (!username || !password) {
+      showMsg('loginMsg', "Please enter both username and password.", 'error'); return;
+    }
+
+    btn.disabled = true;
+    try {
+      const accounts = await getAccounts();
+      const account = accounts.find(a => a.username.toLowerCase() === username);
+
+      if (!account) {
+        showMsg('loginMsg', "No staff account found with that username.", 'error'); return;
+      }
+      const enteredHash = await hashPassword(password, account.salt);
+      if (enteredHash !== account.passwordHash) {
+        showMsg('loginMsg', "Incorrect password.", 'error'); return;
+      }
+      if (account.status === 'pending') {
+        showMsg('loginMsg', "Your access request is still awaiting approval from the administrator.", 'info'); return;
+      }
+      if (account.status === 'rejected') {
+        showMsg('loginMsg', "Your access request was declined. Contact the administrator directly.", 'error'); return;
+      }
+
+      sessionStorage.setItem('crest_staff_session', JSON.stringify({
+        firstName: account.firstName, surname: account.surname,
+        username: account.username, phone: account.phone, isRoot: !!account.isRoot
+      }));
+      window.location.href = 'admin.html';
+    } catch (err) {
+      console.error(err);
+      showMsg('loginMsg', "Could not reach the account server: " + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function handleStaffRequest() {
+    const firstName = document.getElementById('reqFirstName').value.trim();
+    const surname = document.getElementById('reqSurname').value.trim();
+    const phone = document.getElementById('reqPhone').value.trim();
+    const username = document.getElementById('reqUsername').value.trim().toLowerCase();
+    const password = document.getElementById('reqPassword').value;
+    const btn = document.getElementById('reqBtn');
+
+    if (!firstName || !surname || !phone || !username || !password) {
+      showMsg('reqMsg', "Please fill in every field.", 'error'); return;
+    }
+    if (!isStrongPassword(password)) {
+      showMsg('reqMsg', "Password must be at least 8 characters and include a letter and a number.", 'error'); return;
+    }
+
+    btn.disabled = true;
+    try {
+      const accounts = await getAccounts();
+      if (accounts.some(a => a.username.toLowerCase() === username)) {
+        showMsg('reqMsg', "That username is already taken. Choose another.", 'error'); return;
+      }
+      const salt = generateSalt();
+      const passwordHash = await hashPassword(password, salt);
+      accounts.push({ firstName, surname, phone, username, salt, passwordHash, isRoot: false, status: 'pending', createdAt: Date.now() });
+      await saveAccounts(accounts);
+
+      showMsg('reqMsg', "Request submitted! You'll be able to sign in once the administrator approves your account.", 'success');
+      document.getElementById('reqFirstName').value = '';
+      document.getElementById('reqSurname').value = '';
+      document.getElementById('reqPhone').value = '';
+      document.getElementById('reqUsername').value = '';
+      document.getElementById('reqPassword').value = '';
+    } catch (err) {
+      console.error(err);
+      showMsg('reqMsg', "Could not submit your request: " + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>

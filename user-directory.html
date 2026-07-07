@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CREST Academy — User Directory</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 5%;
+    background: #04070f; color: #e2e8f0;
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: #64748b; font-size: 13px; margin-bottom: 30px; }
+  .stat-card {
+    display: inline-block; background: linear-gradient(145deg, #0e0d28, #070b1e);
+    border: 1px solid rgba(56,189,248,0.25); border-radius: 14px;
+    padding: 20px 30px; margin-bottom: 30px;
+  }
+  .stat-card .num { font-size: 36px; font-weight: 800; color: #38bdf8; }
+  .stat-card .label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  th { color: #94a3b8; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
+  tr:hover td { background: rgba(56,189,248,0.04); }
+  .badge {
+    display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.3);
+  }
+  #status { color: #38bdf8; font-size: 13px; margin-bottom: 20px; }
+  .error { color: #ef4444; }
+  .note {
+    margin-top: 30px; font-size: 12px; color: #64748b; line-height: 1.6;
+    border-left: 3px solid rgba(168,85,247,0.4); padding-left: 12px;
+  }
+  input#searchBox {
+    background: #0b112c; border: 1px solid rgba(255,255,255,0.1); color: #fff;
+    padding: 10px 14px; border-radius: 8px; font-size: 13px; width: 260px; margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+
+  <h1>👥 CREST Academy — User Directory</h1>
+  <div class="sub">Live count of registered student accounts, pulled from your JSONBin.</div>
+
+  <div class="stat-card">
+    <div class="num" id="userCount">—</div>
+    <div class="label">Registered Students</div>
+  </div>
+
+  <div id="status">Loading student records...</div>
+
+  <input type="text" id="searchBox" placeholder="Search by name or phone..." onkeyup="filterTable()" style="display:none;" />
+
+  <table id="userTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Account Created</th>
+        <th>Password</th>
+      </tr>
+    </thead>
+    <tbody id="userTableBody"></tbody>
+  </table>
+
+  <div class="note">
+    <strong>Why passwords aren't shown:</strong> CREST Academy stores each password as a salted SHA-256 hash, not as plain text.
+    That's a one-way transformation — it can't be reversed to reveal the original password, by you or anyone else.
+    This protects your students even if this data were ever seen by the wrong person. The "Password" column simply
+    confirms a credential is on file. If a student is locked out, use your existing admin reset-password flow to
+    issue them a new one.
+  </div>
+
+<script>
+  const API_KEY = "$2a$10$q1K8WzlWXgpkdX5BYcLBfuiYIdv7ZrDcy2OjEiGlXdWC2Y5/CB7e6";
+  const BIN_ID = "6a3e2279da38895dfe014a42";
+  const BASE_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
+
+  let allStudents = [];
+
+  async function loadStudents() {
+    const statusEl = document.getElementById('status');
+    try {
+      const res = await fetch(BASE_URL + "/latest", {
+        headers: { "X-Master-Key": API_KEY }
+      });
+      if (!res.ok) throw new Error("Request failed (status " + res.status + ")");
+      const json = await res.json();
+      const record = json.record || {};
+      allStudents = Array.isArray(record.students) ? record.students : [];
+
+      document.getElementById('userCount').textContent = allStudents.length;
+      statusEl.style.display = 'none';
+      document.getElementById('searchBox').style.display = 'block';
+      document.getElementById('userTable').style.display = 'table';
+      renderTable(allStudents);
+
+    } catch (err) {
+      statusEl.className = 'error';
+      statusEl.textContent = 'Could not load student records: ' + err.message;
+      console.error(err);
+    }
+  }
+
+  function renderTable(list) {
+    const body = document.getElementById('userTableBody');
+    if (!list.length) {
+      body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">No registered students found.</td></tr>`;
+      return;
+    }
+    body.innerHTML = list.map((s, i) => {
+      const created = s.createdAt ? new Date(s.createdAt).toLocaleString() : "—";
+      return `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${escapeHtml(s.name || "—")}</td>
+          <td>${escapeHtml(s.phone || "—")}</td>
+          <td>${created}</td>
+          <td>${s.passwordHash ? '<span class="badge">Set (hashed)</span>' : '<span class="badge" style="background:rgba(239,68,68,0.12);color:#ef4444;border-color:rgba(239,68,68,0.3);">Missing</span>'}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  function filterTable() {
+    const q = document.getElementById('searchBox').value.trim().toLowerCase();
+    if (!q) { renderTable(allStudents); return; }
+    const filtered = allStudents.filter(s =>
+      (s.name || "").toLowerCase().includes(q) ||
+      (s.phone || "").toLowerCase().includes(q)
+    );
+    renderTable(filtered);
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  loadStudents();
+</script>
+</body>
+</html>
